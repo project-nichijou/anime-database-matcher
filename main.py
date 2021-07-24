@@ -32,12 +32,35 @@ def match(target: str):
 	matched_data = nichijou_db.read_all('anime', ['nid', target])
 	match_data = nichijou_db.read_all('anime_name', ['nid', 'name'])
 	
+	if is_null(source_data): source_data = []
+	if is_null(matched_data): matched_data = []
+	if is_null(match_data): match_data = []
+
+	matched_data = [item for item in matched_data if is_not_null(item[target]) and item[target] != 0]
+
+	# find duplicate items in `nichijou`
+	if is_not_null(match_data):
+		match_data = sorted(match_data, key=lambda x: x['name'])
+		last = None
+		dup_names = []
+		for data in match_data:
+			if last == data['name']:
+				dup_names.append(last)
+			last = data['name']
+
+	# delete matched in `match_fail`
+	if is_not_null(matched_data):
+		for data in matched_data:
+			nichijou_db.delete_match_fail(target, data[target])
+
 	echo.clog(f'source length, {len(source_data)}')
 	echo.clog(f'match length, {len(match_data)}')
 
 	# delete matched in source
-	matched_data = sorted(matched_data, key=lambda x: x[target])
-	source_data = sorted(source_data, key=lambda x: x['id'])
+	if is_not_null(matched_data):
+		matched_data = sorted(matched_data, key=lambda x: x[target])
+	if is_not_null(source_data):
+		source_data = sorted(source_data, key=lambda x: x['id'])
 
 	j = 0
 	del_cnt = 0	
@@ -50,14 +73,16 @@ def match(target: str):
 			del_cnt += 1
 			if j < len(source_data) - 1: j += 1
 			else: break
-
-	source_data = sorted(source_data, key=lambda x: x['id'])
+	if is_not_null(source_data):
+		source_data = sorted(source_data, key=lambda x: x['id'])
 	if del_cnt != 0:
 		source_data = source_data[:(-1 * del_cnt)]
 	
 	# delete matched in match
-	matched_data = sorted(matched_data, key=lambda x: x['nid'])
-	match_data = sorted(match_data, key=lambda x: x['nid'])
+	if is_not_null(matched_data):
+		matched_data = sorted(matched_data, key=lambda x: x['nid'])
+	if is_not_null(match_data):
+		match_data = sorted(match_data, key=lambda x: x['nid'])
 	
 	j = 0
 	del_cnt = 0
@@ -73,7 +98,8 @@ def match(target: str):
 			if j < len(match_data) - 1: j += 1
 			else: break
 	
-	match_data = sorted(match_data, key=lambda x: x['nid'])
+	if is_not_null(match_data):
+		match_data = sorted(match_data, key=lambda x: x['nid'])
 	if del_cnt != 0:
 		match_data = match_data[:(-1 * del_cnt)]
 
@@ -86,9 +112,15 @@ def match(target: str):
 	dis_res = {}
 	names = []
 
+	cnt = 0
+
 	for source in source_data:
 		source_id = source['id']
 		source_name = source['name']
+		
+		cnt += 1
+		echo.clog(f'Handling {target} {cnt} / {len(source_data)}: ({source_id}, {source_name})')
+
 		# initial case
 		if is_null(processing):
 			processing = source_id
@@ -125,27 +157,30 @@ def match(target: str):
 				nichijou_db.write('match_fail', {
 					'id': processing,
 					'source': target,
-					'dis': json.dumps(dis_res)
+					'dis': json.dumps(dis_res, ensure_ascii=False)
 				})
 			processing = source_id
 			dis_res = {}
 			names = [source_name]
 
-		dis_arr = [{'name': '', 'dis': sys.maxsize} for _ in range(0, 5)]
-		for match_ in match_data:
-			match_id = match_['nid']
-			match_name = match_['name']
-			e_dis = editdistance.eval(source_name, match_name)
-			dis_arr = sorted(dis_arr, key=lambda x: x['dis'])
-			if e_dis == 0:
-				processing = -1 * source_id
-				nichijou_db.write('anime', {
-					'nid': match_id,
-					target: source_id
-				})
-				break
-			elif e_dis < dis_arr[4]['dis']:
-				dis_arr[4] = {'name': match_name, 'dis': e_dis}
+		if source_name in dup_names:
+			dis_arr = [{'name': source_name, 'dis': -1}]
+		else:
+			dis_arr = [{'name': '', 'dis': sys.maxsize} for _ in range(0, 5)]
+			for match_ in match_data:
+				match_id = match_['nid']
+				match_name = match_['name']
+				e_dis = editdistance.eval(source_name, match_name)
+				dis_arr = sorted(dis_arr, key=lambda x: x['dis'])
+				if e_dis == 0:
+					processing = -1 * source_id
+					nichijou_db.write('anime', {
+						'nid': match_id,
+						target: source_id
+					})
+					break
+				elif e_dis < dis_arr[4]['dis']:
+					dis_arr[4] = {'name': match_name, 'dis': e_dis}
 		dis_res[source_name] = dis_arr
 
 
