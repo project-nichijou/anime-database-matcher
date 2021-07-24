@@ -51,3 +51,27 @@ class NichijouDatabase(CommonDatabase):
 					'source': source
 				}
 			))
+
+
+	def delete_match_fail(self, source, id):
+		'''
+		delete the resolved `match_fail` item
+		'''
+		try:
+			cursor = self.get_cursor()
+
+			delete = f'DELETE FROM `match_fail` WHERE `source` = {repr(source)} AND `id` = {repr(id)}'
+
+			cursor.execute(delete)
+			self.database.commit()
+			cursor.close()
+		except Exception as e:
+			self.log(format_log(
+				info='exception caught when deleting resolved match_fail items.',
+				exception=e,
+				traceback=traceback.format_exc(),
+				values={
+					'source': source,
+					'id': id
+				}
+			))
