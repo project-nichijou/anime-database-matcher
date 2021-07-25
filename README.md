@@ -5,7 +5,7 @@
 # 原理
 
 参考：
-- [文档/Matcher实现细节](https://github.com/project-nichijou/intro/blob/master/doc.md#matcher-%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82)
+- [文档/Matcher实现细节](https://project-nichijou.github.io/docs/#/./server/anime-database/matcher)
 
 # 配置方法
 
