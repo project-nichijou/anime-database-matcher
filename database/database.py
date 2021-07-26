@@ -55,7 +55,7 @@ class CommonDatabase(object):
 		check whether the specific tables exist
 		'''
 		cursor = self.get_cursor()
-		if self.config['database'] == 'nichijou':
+		if self.config['database'] == 'nichijou_anime':
 			cmds = db_commands.CREATE_NICHIJOU_TABLE_COMMANDS.values()
 		else:
 			cmds = db_commands.CREATE_ANIME_TABLE_COMMANDS.values()

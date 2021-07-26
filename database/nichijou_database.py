@@ -6,7 +6,7 @@ from database.database import CommonDatabase
 class NichijouDatabase(CommonDatabase):
 
 	def __init__(self):
-		super().__init__('nichijou')
+		super().__init__('nichijou_anime')
 
 
 	def check_source_column(self, source):
